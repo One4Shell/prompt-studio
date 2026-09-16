@@ -526,7 +526,7 @@
                                         <span v-if="!compiledSegments.length" class="text-faint">Compila i campi per generare il prompt.</span>
                                     </div>
                                     <div class="relative flex-none">
-                                        <div class="flex items-stretch gap-2 w-[230px]">
+                                        <div class="flex items-stretch gap-2 w-[230px] ml-auto">
                                             <button class="btn btn-primary flex-1 min-w-0 h-9" :disabled="!compiledPrompt" @click="sendToProvider()">
                                                 <svg class="icon text-[14px]"><use href="#i-send"/></svg>
                                                 <span class="truncate">Invia a {{ selectedProvider.label }}</span>
