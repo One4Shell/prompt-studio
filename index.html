@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>Prompt Studio</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+                    },
+                    colors: {
+                        canvas: 'var(--c-canvas)',
+                        surface: 'var(--c-surface)',
+                        raised: 'var(--c-raised)',
+                        well: 'var(--c-well)',
+                        hover: 'var(--c-hover)',
+                        selected: 'var(--c-selected)',
+                        ink: 'var(--c-ink)',
+                        muted: 'var(--c-muted)',
+                        faint: 'var(--c-faint)',
+                        line: 'var(--c-line)',
+                        'line-strong': 'var(--c-line-strong)',
+                        accent: 'var(--c-accent)',
+                        'accent-hover': 'var(--c-accent-hover)',
+                        'accent-soft': 'var(--c-accent-soft)',
+                        'accent-ink': 'var(--c-accent-ink)',
+                        token: 'var(--c-token)',
+                        'token-soft': 'var(--c-token-soft)',
+                        danger: 'var(--c-danger)',
+                        'danger-soft': 'var(--c-danger-soft)',
+                    },
+                    borderRadius: {
+                        panel: '8px',
+                        control: '6px',
+                        chip: '4px',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet">
+
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        :root {
+            --c-canvas: #E5E5E8;
+            --c-surface: #F7F7F8;
+            --c-raised: #FFFFFF;
+            --c-well: #ECECEF;
+            --c-hover: #ECECEF;
+            --c-selected: #E1EFE8;
+            --c-ink: #17171A;
+            --c-muted: #66666E;
+            --c-faint: #9A9AA2;
+            --c-line: #D6D6DB;
+            --c-line-strong: #C2C2C9;
+            --c-accent: #0E7C5A;
+            --c-accent-hover: #0B6A4D;
+            --c-accent-soft: #DCEDE4;
+            --c-accent-ink: #FFFFFF;
+            --c-token: #96590A;
+            --c-token-soft: #F1E6D3;
+            --c-danger: #B4362B;
+            --c-danger-soft: #F6E3E0;
+        }
+        .dark {
+            --c-canvas: #121215;
+            --c-surface: #1C1C20;
+            --c-raised: #232328;
+            --c-well: #202024;
+            --c-hover: #26262C;
+            --c-selected: #1B3029;
+            --c-ink: #F1F1F2;
+            --c-muted: #9A9AA3;
+            --c-faint: #67676F;
+            --c-line: #2E2E35;
+            --c-line-strong: #3B3B44;
+            --c-accent: #2FA37A;
+            --c-accent-hover: #39B98B;
+            --c-accent-soft: #17322A;
+            --c-accent-ink: #04140F;
+            --c-token: #DBA05A;
+            --c-token-soft: #332716;
+            --c-danger: #E5695E;
+            --c-danger-soft: #3A211E;
+        }
+
+        * { box-sizing: border-box; }
+        html, body, #app { height: 100%; }
+        body {
+            margin: 0;
+            background: var(--c-canvas);
+            color: var(--c-ink);
+            font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        [v-cloak] { display: none; }
+        .app-root { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        .app-root.resizing { cursor: col-resize; }
+        .app-root.resizing * { user-select: none !important; }
+
+        ::selection { background: var(--c-accent-soft); color: var(--c-ink); }
+        :focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; border-radius: 4px; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--c-muted) 35%, transparent);
+            border: 3px solid transparent;
+            background-clip: padding-box;
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--c-muted) 55%, transparent); border: 3px solid transparent; background-clip: padding-box; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+
+        .icon { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+        /* ---- Chrome primitives ---- */
+        .btn {
+            display: inline-flex; align-items: center; gap: .4rem;
+            height: 28px; padding: 0 .625rem;
+            border-radius: 6px; border: 1px solid transparent;
+            font-size: 12px; font-weight: 500; white-space: nowrap;
+            color: var(--c-ink); background: transparent; cursor: pointer;
+            transition: background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
+        }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn:hover:not(:disabled) { background: var(--c-hover); }
+        .btn-primary { background: var(--c-accent); color: var(--c-accent-ink); }
+        .btn-primary:hover:not(:disabled) { background: var(--c-accent-hover); }
+        .btn-outline { border-color: var(--c-line); background: var(--c-surface); }
+        .btn-outline:hover:not(:disabled) { background: var(--c-hover); }
+        .btn-danger { background: var(--c-danger); color: #fff; }
+        .btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--c-danger) 85%, #000); }
+        .icon-btn {
+            width: 28px; height: 28px; display: grid; place-items: center;
+            border-radius: 6px; color: var(--c-muted); background: transparent;
+            border: none; cursor: pointer; transition: background-color .12s ease, color .12s ease;
+        }
+        .icon-btn:hover { background: var(--c-hover); color: var(--c-ink); }
+        .kbd {
+            font-family: 'Geist Mono', ui-monospace, monospace;
+            font-size: 10px; line-height: 1; padding: 3px 5px;
+            border: 1px solid var(--c-line); border-radius: 4px;
+            background: var(--c-well); color: var(--c-muted);
+        }
+
+        .field {
+            width: 100%; background: var(--c-well);
+            border: 1px solid var(--c-line); border-radius: 6px;
+            color: var(--c-ink); font-size: 12px; padding: .4rem .6rem;
+            transition: border-color .12s ease, box-shadow .12s ease;
+        }
+        .field::placeholder { color: var(--c-faint); }
+        .field:focus { outline: none; border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-soft); }
+        .flabel { font-size: 11px; font-weight: 500; color: var(--c-muted); }
+
+        .chip {
+            height: 22px; padding: 0 .5rem; border-radius: 5px;
+            font-size: 11px; color: var(--c-muted); background: transparent;
+            border: none; cursor: pointer; white-space: nowrap;
+            display: inline-flex; align-items: center;
+            transition: background-color .12s ease, color .12s ease;
+        }
+        .chip:hover { background: var(--c-hover); color: var(--c-ink); }
+        .chip.active { background: var(--c-accent-soft); color: var(--c-accent); font-weight: 500; }
+
+        .row {
+            display: flex; flex-direction: column; gap: 2px; width: 100%;
+            padding: 8px 10px; border-radius: 6px; border: none;
+            background: transparent; cursor: pointer; text-align: left;
+            transition: background-color .12s ease;
+        }
+        .row:hover { background: var(--c-hover); }
+        .row.active { background: var(--c-selected); }
+        .row.active .row-title { color: var(--c-accent); }
+
+        .panel { background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 8px; overflow: hidden; }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .4rem .78rem; border-bottom: 1px solid var(--c-line); }
+        .panel-title { font-size: 11.5px; font-weight: 600; color: var(--c-ink); }
+
+        .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 196px; flex: none; padding: 2px; background: var(--c-well); border: 1px solid var(--c-line); border-radius: 7px; }
+        .seg-btn { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; height: 24px; padding: 0 .4rem; font-size: 11.5px; color: var(--c-muted); background: transparent; border: none; cursor: pointer; border-radius: 5px; transition: color .12s ease; }
+        .seg-btn.on { color: var(--c-ink); font-weight: 500; }
+        .seg-ind { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); background: var(--c-raised); border: 1px solid var(--c-line); border-radius: 5px; transition: transform .18s cubic-bezier(.4,0,.2,1); }
+
+        .codebox {
+            background: var(--c-well); border: 1px solid var(--c-line); border-radius: 6px;
+            padding: .75rem .85rem; font-family: 'Geist Mono', ui-monospace, monospace;
+            font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+            color: var(--c-ink);
+        }
+        .tok { color: var(--c-token); background: var(--c-token-soft); border-radius: 3px; padding: 0 2px; }
+
+        .varlabel { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 500; color: var(--c-token); }
+        .varchip { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: var(--c-token); background: var(--c-token-soft); padding: 2px 6px; border-radius: 4px; }
+
+        /* ---- Inline variable tokens ---- */
+        .vtoken {
+            margin: 0.3rem;
+            display: inline; font-family: 'Geist Mono', ui-monospace, monospace;
+            font-size: inherit; line-height: inherit; text-align: left;
+            color: var(--c-token); background: var(--c-token-soft);
+            border: 1px dashed color-mix(in srgb, var(--c-token) 60%, transparent);
+            border-radius: 4px; padding: 0 3px; cursor: pointer; white-space: nowrap;
+            transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+        }
+        .vtoken:hover { border-color: var(--c-token); background: color-mix(in srgb, var(--c-token-soft) 75%, var(--c-token) 10%); }
+        .vtoken-on {
+            color: var(--c-accent); background: var(--c-accent-soft);
+            border-style: solid; border-color: color-mix(in srgb, var(--c-accent) 45%, transparent);
+        }
+        .vtoken-on:hover { border-color: var(--c-accent); }
+        .vtoken .icon { display: inline-block; vertical-align: -2px; }
+
+        .vpop {
+            position: fixed; z-index: 65; background: var(--c-raised);
+            border: 1px solid var(--c-line-strong); border-radius: 8px; overflow: hidden;
+            box-shadow: 0 18px 40px -16px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.15);
+        }
+        .vpop-list { max-height: 240px; overflow-y: auto; padding: 4px; }
+        .vopt {
+            display: flex; align-items: center; gap: .5rem; width: 100%;
+            padding: .4rem .5rem; border-radius: 6px; border: none; background: transparent;
+            font-size: 12px; color: var(--c-ink); cursor: pointer; text-align: left;
+            transition: background-color .12s ease, color .12s ease;
+        }
+        .vopt:hover { background: var(--c-hover); }
+        .vopt.on { background: var(--c-accent-soft); color: var(--c-accent); font-weight: 500; }
+
+        /* ---- Split + sidebar ---- */
+        .split { flex: 1; min-height: 0; display: flex; position: relative; overflow: hidden; }
+        .sidebar {
+            position: relative; flex: none; display: flex; flex-direction: column;
+            background: var(--c-surface); border-right: 1px solid var(--c-line); overflow: hidden;
+        }
+        .rs-handle { position: absolute; top: 0; right: -2px; bottom: 0; width: 5px; cursor: col-resize; z-index: 5; }
+        .rs-handle::after { content: ''; position: absolute; top: 0; bottom: 0; right: 2px; width: 1px; background: transparent; transition: background .12s ease; }
+        .rs-handle:hover::after, .app-root.resizing .rs-handle::after { background: var(--c-accent); }
+        .workbench { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--c-canvas); overflow: hidden; }
+
+        @media (max-width: 767px) {
+            .sidebar {
+                position: absolute; top: 0; bottom: 0; left: 0; z-index: 40;
+                width: 84vw; max-width: 330px; transform: translateX(-100%);
+                transition: transform .18s cubic-bezier(.4,0,.2,1);
+                box-shadow: 20px 0 40px -24px rgba(0,0,0,.45);
+            }
+            .sidebar.drawer-open { transform: none; }
+            .rs-handle { display: none; }
+        }
+
+        /* ---- Overlays ---- */
+        .ov {
+            position: fixed; inset: 0; z-index: 60; display: flex; justify-content: center;
+            align-items: flex-start; padding: 12vh 1rem 1rem;
+            background: color-mix(in srgb, var(--c-canvas) 55%, transparent);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+        }
+        .ov.center { align-items: center; padding-top: 1rem; }
+        .palette {
+            width: 100%; max-width: 560px; background: var(--c-raised);
+            border: 1px solid var(--c-line-strong); border-radius: 10px; overflow: hidden;
+            box-shadow: 0 24px 60px -20px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.18);
+        }
+        .pitem { display: flex; align-items: center; gap: .6rem; width: 100%; padding: .45rem .55rem; border-radius: 6px; font-size: 12.5px; color: var(--c-ink); background: transparent; border: none; cursor: pointer; }
+        .pitem .icon { color: var(--c-muted); }
+        .pitem.on { background: var(--c-accent-soft); color: var(--c-accent); }
+        .pitem.on .icon { color: var(--c-accent); }
+        .pgroup { font-size: 10.5px; color: var(--c-faint); padding: .5rem .55rem .25rem; }
+        .dialog { width: 100%; max-width: 380px; background: var(--c-raised); border: 1px solid var(--c-line-strong); border-radius: 10px; padding: 1rem; box-shadow: 0 24px 60px -20px rgba(0,0,0,.5); }
+        .toast {
+            position: fixed; right: 1rem; bottom: 2.75rem; z-index: 70;
+            display: flex; align-items: center; gap: .5rem;
+            padding: .5rem .75rem; border-radius: 8px;
+            background: var(--c-raised); border: 1px solid var(--c-line-strong);
+            box-shadow: 0 12px 32px -12px rgba(0,0,0,.4);
+            font-size: 12px; color: var(--c-ink); max-width: calc(100vw - 2rem);
+        }
+
+        .pop-enter-active, .pop-leave-active { transition: opacity .16s ease, transform .16s cubic-bezier(.2,.8,.2,1); }
+        .pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(-4px) scale(.99); }
+        .toast-enter-active, .toast-leave-active { transition: opacity .16s ease, transform .16s ease; }
+        .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(6px); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pop-enter-active, .pop-leave-active,
+            .toast-enter-active, .toast-leave-active,
+            .sidebar, .seg-ind, .btn, .icon-btn, .row, .field, .chip { transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.4 3.6a2 2 0 0 1 3 3L7.4 18.6a2 2 0 0 1-.9.5l-2.9.9a.5.5 0 0 1-.6-.6l.9-2.9a2 2 0 0 1 .5-.9z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+    <symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></symbol>
+    <symbol id="i-command" viewBox="0 0 24 24"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div id="app" v-cloak>
+    <div class="app-root" :class="{ resizing: isResizing }">
+
+        <!-- TITLE BAR -->
+        <header class="flex-none flex items-center gap-1.5 h-11 px-2.5 bg-surface border-b border-line select-none">
+            <button class="icon-btn md:hidden" @click="sidebarOpen = true" aria-label="Mostra libreria">
+                <svg class="icon text-[15px]"><use href="#i-panel"/></svg>
+            </button>
+
+            <div class="flex items-center gap-2 pl-0.5 pr-1 min-w-0">
+                <div class="w-6 h-6 rounded-control bg-accent text-accent-ink grid place-items-center">
+                    <svg class="icon text-[13px]"><use href="#i-braces"/></svg>
+                </div>
+                <span class="text-[13px] font-semibold tracking-tight text-ink">Prompt Studio</span>
+            </div>
+
+            <div class="flex-1"></div>
+
+            <button class="btn btn-outline hidden sm:inline-flex" @click="togglePalette">
+                <svg class="icon text-[13px]"><use href="#i-search"/></svg>
+                <span>Comandi</span>
+                <span class="kbd ml-1">{{ modKey }}K</span>
+            </button>
+            <button class="icon-btn sm:hidden" @click="togglePalette" aria-label="Comandi">
+                <svg class="icon text-[15px]"><use href="#i-command"/></svg>
+            </button>
+
+            <button class="icon-btn" @click="toggleTheme" :aria-label="isDark ? 'Tema chiaro' : 'Tema scuro'">
+                <svg class="icon text-[15px]"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
+            </button>
+
+            <div class="hidden sm:block w-px h-4 bg-line mx-0.5"></div>
+
+            <button class="icon-btn" @click="importClick" aria-label="Importa libreria JSON" title="Importa JSON">
+                <svg class="icon text-[15px]"><use href="#i-upload"/></svg>
+            </button>
+            <button class="icon-btn" @click="exportTemplates" aria-label="Esporta libreria JSON" title="Esporta JSON">
+                <svg class="icon text-[15px]"><use href="#i-download"/></svg>
+            </button>
+
+            <div class="hidden sm:block w-px h-4 bg-line mx-0.5"></div>
+
+            <button class="btn btn-primary" @click="createNewTemplate">
+                <svg class="icon text-[13px]"><use href="#i-plus"/></svg>
+                <span class="hidden sm:inline">Nuovo prompt</span>
+            </button>
+        </header>
+
+        <!-- SPLIT -->
+        <div class="split">
+
+            <!-- SIDEBAR -->
+            <aside
+                class="sidebar"
+                :class="{ 'drawer-open': sidebarOpen && isNarrow }"
+                :style="isNarrow ? null : { width: sidebarWidth + 'px' }"
+            >
+                <div class="p-3 space-y-2 border-b border-line">
+                    <div class="relative">
+                        <svg class="icon text-[14px] absolute left-2.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"><use href="#i-search"/></svg>
+                        <input
+                            ref="searchEl"
+                            v-model="searchQuery"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Cerca un prompt…"
+                            class="field pl-8"
+                        >
+                    </div>
+                    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                        <button
+                            v-for="cat in categories"
+                            :key="cat"
+                            class="chip"
+                            :class="{ active: selectedCategory === cat }"
+                            @click="selectedCategory = cat"
+                        >{{ cat }}</button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
+                    <div v-if="filteredTemplates.length === 0" class="px-4 py-10 text-center space-y-1.5">
+                        <svg class="icon text-[20px] text-faint mx-auto"><use href="#i-file"/></svg>
+                        <p class="text-[12.5px] font-medium text-ink">Nessun prompt trovato</p>
+                        <p class="text-[11.5px] text-muted leading-relaxed">Prova con un'altra ricerca o categoria.</p>
+                    </div>
+
+                    <button
+                        v-for="tpl in filteredTemplates"
+                        :key="tpl.id"
+                        class="row"
+                        :class="{ active: activeTemplateId === tpl.id }"
+                        @click="selectTemplate(tpl)"
+                    >
+                        <span class="flex items-center gap-2">
+                            <span class="row-title text-[12.5px] font-medium text-ink truncate flex-1">{{ tpl.title }}</span>
+                            <span class="text-[10.5px] text-faint flex-none">{{ tpl.category || 'Generale' }}</span>
+                        </span>
+                        <span class="text-[11.5px] text-muted line-clamp-2 leading-snug">{{ tpl.description || tpl.content }}</span>
+                    </button>
+                </div>
+
+                <div class="rs-handle" @pointerdown.prevent="startResize" aria-hidden="true"></div>
+            </aside>
+
+            <div
+                v-if="isNarrow && sidebarOpen"
+                class="absolute inset-0 z-30 bg-black/35 md:hidden"
+                @click="sidebarOpen = false"
+                aria-hidden="true"
+            ></div>
+
+            <!-- WORKBENCH -->
+            <main v-if="activeTemplate" class="workbench">
+                <div class="flex-none flex items-center gap-3 h-11 px-4 bg-surface border-b border-line">
+                    <div class="min-w-0 flex items-center gap-2">
+                        <span class="hidden sm:inline text-[10.5px] text-muted px-1.5 py-0.5 rounded-chip border border-line flex-none">
+                            {{ activeTemplate.category || 'Generale' }}
+                        </span>
+                        <h2 class="text-[13px] font-semibold text-ink truncate">{{ activeTemplate.title }}</h2>
+                        <span v-if="editDirty" class="text-[11px] text-token flex-none">non salvato</span>
+                    </div>
+
+                    <div class="flex-1"></div>
+
+                    <div class="seg">
+                        <div class="seg-ind" :style="{ transform: activeTab === 'edit' ? 'translateX(100%)' : 'translateX(0)' }"></div>
+                        <button class="seg-btn" :class="{ on: activeTab === 'fill' }" @click="requestTab('fill')">
+                            <svg class="icon text-[13px]"><use href="#i-sliders"/></svg>
+                            <span>Compila</span>
+                        </button>
+                        <button class="seg-btn" :class="{ on: activeTab === 'edit' }" @click="requestTab('edit')">
+                            <svg class="icon text-[13px]"><use href="#i-pen"/></svg>
+                            <span>Modifica</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 min-h-0 overflow-y-auto">
+                    <div :class="activeTab === 'fill' ? 'h-full flex flex-col px-5 sm:px-7 py-6' : 'min-h-full flex flex-col px-5 sm:px-7 py-6 gap-5'">
+
+                        <!-- FILL -->
+                        <template v-if="activeTab === 'fill'">
+                            <section class="panel flex-1 min-h-0 flex flex-col">
+                                <header class="panel-head">
+                                    <h3 class="panel-title">Prompt compilato</h3>
+                                    <div class="flex items-center gap-3">
+                                        <span v-if="activeTemplateVariables.length" class="text-[11px] text-faint tabular-nums">
+                                            {{ filledCount }}/{{ activeTemplateVariables.length }}
+                                        </span>
+                                        <button
+                                            v-if="filledCount > 0"
+                                            class="btn h-6 px-2 text-[11px] text-muted"
+                                            @click="variableValues = {}"
+                                        >
+                                            <svg class="icon text-[12px]"><use href="#i-eraser"/></svg>
+                                            <span>Svuota</span>
+                                        </button>
+                                        <span class="text-[11px] text-faint tabular-nums">
+                                            {{ charCount }} caratteri · ~{{ tokenCount }} token
+                                        </span>
+                                    </div>
+                                </header>
+                                <div class="flex-1 min-h-0 flex flex-col gap-3 p-4">
+                                    <div class="codebox flex-1 min-h-0 overflow-y-auto">
+                                        <template v-for="(seg, i) in compiledSegments" :key="i">
+                                            <span v-if="seg.t === 'text'">{{ seg.v }}</span>
+                                            <button
+                                                v-else
+                                                type="button"
+                                                class="vtoken"
+                                                :class="{ 'vtoken-on': seg.filled }"
+                                                :title="'Compila ' + seg.name"
+                                                @click="openVarEditor(seg.name, $event)"
+                                            >{{ seg.v }}<svg class="icon text-[11px] ml-1"><use href="#i-chevron-down"/></svg></button>
+                                        </template>
+                                        <span v-if="!compiledSegments.length" class="text-faint">Compila i campi per generare il prompt.</span>
+                                    </div>
+                                    <button class="btn btn-primary w-full h-9 flex-none" @click="copyPrompt">
+                                        <svg class="icon text-[14px]"><use href="#i-copy"/></svg>
+                                        <span>Copia prompt</span>
+                                        <span class="kbd ml-1">{{ modKey }}↵</span>
+                                    </button>
+                                </div>
+                            </section>
+                        </template>
+
+                        <!-- EDIT -->
+                        <template v-else-if="activeTab === 'edit' && editDraft">
+                            <section class="panel">
+                                <header class="panel-head">
+                                    <h3 class="panel-title">Dettagli</h3>
+                                    <button class="btn h-6 px-2 text-[11px] text-danger" @click="confirmDelete(activeTemplate)">
+                                        <svg class="icon text-[12px]"><use href="#i-trash"/></svg>
+                                        <span>Elimina</span>
+                                    </button>
+                                </header>
+                                <div class="p-3 space-y-2">
+                                    <div class="grid gap-2 sm:grid-cols-3">
+                                        <div class="sm:col-span-2 space-y-1">
+                                            <label class="flabel" for="ed-title">Titolo</label>
+                                            <input id="ed-title" v-model="editDraft.title" type="text" autocomplete="off" class="field">
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="flabel" for="ed-cat">Categoria</label>
+                                            <input id="ed-cat" v-model="editDraft.category" type="text" autocomplete="off" class="field">
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="flabel" for="ed-desc">Descrizione</label>
+                                        <input id="ed-desc" v-model="editDraft.description" type="text" autocomplete="off" class="field">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="panel flex-1 min-h-0 flex flex-col">
+                                <header class="panel-head">
+                                    <h3 class="panel-title">Testo del template</h3>
+                                    <span class="text-[10.5px] text-faint">
+                                        <span class="font-mono text-token">{variabile}</span> testo libero ·
+                                        <span class="font-mono text-token">{variabile:opzione1,opzione2}</span> preset
+                                    </span>
+                                </header>
+                                <div class="flex-1 min-h-0 flex flex-col gap-3 p-4">
+                                    <textarea v-model="editDraft.content" class="field flex-1 min-h-[200px] font-mono resize-none leading-relaxed"></textarea>
+                                    <div v-if="editVariables.length" class="space-y-1.5">
+                                        <div v-for="v in editVariables" :key="v" class="flex items-start gap-2 text-[11.5px]">
+                                            <span class="varchip flex-none">{{ '{' + v + '}' }}</span>
+                                            <span v-if="editPresets[v]" class="text-muted leading-relaxed">{{ editPresets[v].join(', ') }}</span>
+                                            <span v-else class="text-faint leading-relaxed">testo libero</span>
+                                        </div>
+                                    </div>
+                                    <p v-else class="text-[11.5px] text-faint">Nessuna variabile rilevata nel testo.</p>
+                                </div>
+                            </section>
+
+                            <div class="flex items-center justify-between gap-3">
+                                <span v-if="editDirty" class="text-[11.5px] text-token">Modifiche non salvate</span>
+                                <span v-else class="text-[11.5px] text-faint">Tutto salvato</span>
+                                <div class="flex items-center gap-2">
+                                    <button class="btn btn-outline" @click="requestTab('fill')">Annulla</button>
+                                    <button class="btn btn-primary" :disabled="!editDirty" @click="saveEdit">Salva</button>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+            </main>
+
+            <main v-else class="workbench">
+                <div class="flex-1 grid place-items-center p-8 text-center">
+                    <div class="max-w-xs space-y-3">
+                        <div class="w-10 h-10 rounded-panel bg-well border border-line grid place-items-center mx-auto text-faint">
+                            <svg class="icon text-[18px]"><use href="#i-braces"/></svg>
+                        </div>
+                        <p class="text-[13px] font-medium text-ink">Nessun prompt selezionato</p>
+                        <p class="text-[12px] text-muted leading-relaxed">Scegli un prompt dalla libreria oppure creane uno nuovo.</p>
+                        <button class="btn btn-primary" @click="createNewTemplate">
+                            <svg class="icon text-[13px]"><use href="#i-plus"/></svg>
+                            <span>Nuovo prompt</span>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- STATUS BAR -->
+        <footer class="flex-none h-[26px] flex items-center gap-3 px-3 bg-surface border-t border-line text-[10.5px] text-muted select-none">
+            <span class="tabular-nums">{{ templates.length }} prompt</span>
+            <span class="w-px h-3 bg-line"></span>
+            <span class="truncate max-w-[30ch]">{{ activeTemplate ? activeTemplate.title : 'Nessuna selezione' }}</span>
+            <div class="flex-1"></div>
+            <span v-if="editDirty" class="text-token">modifiche non salvate</span>
+            <span class="hidden sm:flex items-center gap-1.5"><span class="kbd">{{ modKey }}K</span> comandi</span>
+            <span class="hidden md:flex items-center gap-1.5"><span class="kbd">{{ modKey }}↵</span> copia</span>
+            <span class="hidden lg:flex items-center gap-1.5"><span class="kbd">/</span> cerca</span>
+        </footer>
+
+        <!-- COMMAND PALETTE -->
+        <transition name="pop">
+            <div v-if="palette.open" class="ov" @click.self="closePalette">
+                <div class="palette">
+                    <div class="flex items-center gap-2 px-3 h-11 border-b border-line">
+                        <svg class="icon text-[15px] text-faint"><use href="#i-search"/></svg>
+                        <input
+                            ref="paletteInput"
+                            v-model="palette.query"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Cerca un comando o un prompt…"
+                            class="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] text-ink placeholder:text-faint"
+                            @keydown.down.prevent="movePalette(1)"
+                            @keydown.up.prevent="movePalette(-1)"
+                            @keydown.enter.prevent="runPalette()"
+                            @keydown.esc="closePalette"
+                        >
+                        <span class="kbd">esc</span>
+                    </div>
+                    <div class="max-h-[340px] overflow-y-auto p-1.5">
+                        <div v-if="paletteResults.length === 0" class="px-3 py-8 text-center text-[12px] text-faint">
+                            Nessun risultato per “{{ palette.query }}”
+                        </div>
+                        <template v-for="(item, i) in paletteResults" :key="item.id">
+                            <div v-if="i === 0 || paletteResults[i - 1].group !== item.group" class="pgroup">{{ item.group }}</div>
+                            <button
+                                class="pitem"
+                                :class="{ on: i === palette.index }"
+                                @mousemove="palette.index = i"
+                                @click="runPalette(i)"
+                            >
+                                <svg class="icon text-[14px]"><use :href="'#i-' + item.icon"/></svg>
+                                <span class="flex-1 truncate text-left">{{ item.label }}</span>
+                                <span v-if="item.hint" class="text-[10.5px] text-faint tabular-nums">{{ item.hint }}</span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- CONFIRM DIALOG -->
+        <transition name="pop">
+            <div v-if="confirmState.open" class="ov center" @click.self="closeConfirm">
+                <div class="dialog space-y-3">
+                    <div class="flex items-start gap-2.5">
+                        <svg class="icon text-[16px] mt-0.5" :class="confirmState.danger ? 'text-danger' : 'text-accent'">
+                            <use :href="confirmState.danger ? '#i-alert' : '#i-info'"/>
+                        </svg>
+                        <div class="space-y-1">
+                            <h3 class="text-[13px] font-semibold text-ink">{{ confirmState.title }}</h3>
+                            <p class="text-[12px] text-muted leading-relaxed">{{ confirmState.message }}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-1">
+                        <button class="btn btn-outline" @click="closeConfirm">Annulla</button>
+                        <button class="btn" :class="confirmState.danger ? 'btn-danger' : 'btn-primary'" @click="runConfirm">
+                            {{ confirmState.confirmLabel }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- TOAST -->
+        <transition name="toast">
+            <div v-if="toast.show" class="toast" role="status">
+                <svg class="icon text-[14px]" :class="toast.kind === 'error' ? 'text-danger' : 'text-accent'">
+                    <use :href="toast.kind === 'error' ? '#i-alert' : '#i-check'"/>
+                </svg>
+                <span>{{ toast.message }}</span>
+            </div>
+        </transition>
+
+        <!-- VARIABLE POPOVER -->
+        <transition name="pop">
+            <div v-if="varEditor.open" class="fixed inset-0 z-[64]" @click="closeVarEditor" aria-hidden="true"></div>
+        </transition>
+        <transition name="pop">
+            <div
+                v-if="varEditor.open"
+                class="vpop"
+                role="dialog"
+                :style="{ top: varEditor.top + 'px', left: varEditor.left + 'px', width: varEditor.width + 'px' }"
+            >
+                <div class="flex items-center justify-between gap-2 pl-2.5 pr-1.5 h-9 border-b border-line">
+                    <span class="varlabel truncate">{{ '{' + varEditor.name + '}' }}</span>
+                    <button
+                        class="icon-btn w-6 h-6"
+                        title="Svuota campo"
+                        aria-label="Svuota campo"
+                        @click="clearVar(varEditor.name)"
+                    >
+                        <svg class="icon text-[13px]"><use href="#i-eraser"/></svg>
+                    </button>
+                </div>
+
+                <div v-if="varEditor.hasPresets" class="vpop-list">
+                    <button
+                        v-for="opt in tplPresets(varEditor.name)"
+                        :key="opt"
+                        class="vopt"
+                        :class="{ on: variableValues[varEditor.name] === opt }"
+                        @click="setVarValue(varEditor.name, opt)"
+                    >
+                        <svg class="icon text-[13px]" :class="variableValues[varEditor.name] === opt ? 'opacity-100' : 'opacity-0'"><use href="#i-check"/></svg>
+                        <span class="truncate">{{ opt }}</span>
+                    </button>
+                </div>
+
+                <div v-else class="p-2">
+                    <textarea
+                        id="varpop-input"
+                        :value="variableValues[varEditor.name] || ''"
+                        @input="setVarValue(varEditor.name, $event.target.value)"
+                        rows="3"
+                        :placeholder="'Inserisci ' + varEditor.name + '…'"
+                        class="field resize-y leading-relaxed"
+                    ></textarea>
+                </div>
+            </div>
+        </transition>
+
+        <input ref="fileInput" type="file" accept=".json,application/json" class="hidden" @change="importTemplates">
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, watch, nextTick, onMounted, onUnmounted } = Vue;
+
+    const DEFAULT_TEMPLATES = [
+        {
+            id: '1',
+            title: 'Code reviewer senior',
+            category: 'Sviluppo',
+            description: 'Analisi del codice per sicurezza, performance e leggibilità.',
+            content: 'Agisci come uno sviluppatore senior esperto in {linguaggio:JavaScript,Python,TypeScript,Java,C++,Go,Rust}.\n\nEffettua una code review del seguente codice considerando:\n1. Sicurezza e vulnerabilità\n2. Performance ed efficienza\n3. Pulizia e leggibilità\n\nCodice:\n```{linguaggio}\n{codice}\n```',
+        },
+        {
+            id: '2',
+            title: 'Traduzione con registro',
+            category: 'Scrittura',
+            description: 'Traduzione accurata rispettando lingua e tono richiesti.',
+            content: 'Traduci il seguente testo da {lingua_origine:Italiano,Inglese,Spagnolo,Tedesco,Francese} a {lingua_destinazione:Inglese,Italiano,Spagnolo,Tedesco,Francese}.\n\nMantieni un tono {tono:Formale,Informale,Professionale,Accademico,Persuasivo}.\n\nTesto:\n"{testo}"',
+        },
+        {
+            id: '3',
+            title: 'Post LinkedIn',
+            category: 'Marketing',
+            description: 'Post strutturato con gancio iniziale e invito all\'azione.',
+            content: 'Scrivi un post per LinkedIn coinvolgente su: {argomento}.\n\nTarget: {target:Sviluppatori software,Imprenditori e startup,Manager e recruiter}.\nObiettivo: {obiettivo:Engagement,Personal branding,Generazione lead}.\n\nIncludi:\n- Un gancio forte nelle prime 2 righe\n- Paragrafi brevi e spaziosi\n- 3 hashtag pertinenti alla fine',
+        },
+    ];
+
+    createApp({
+        setup() {
+            const templates = ref([]);
+            const activeTemplateId = ref(null);
+            const activeTab = ref('fill');
+            const searchQuery = ref('');
+            const selectedCategory = ref('Tutti');
+            const variableValues = ref({});
+
+            const savedTheme = localStorage.getItem('prompt_studio_theme');
+            const isDark = ref(savedTheme ? savedTheme === 'dark' : true);
+
+            const savedSidebar = parseInt(localStorage.getItem('prompt_studio_sidebar') || '', 10);
+            const sidebarWidth = ref(Number.isFinite(savedSidebar) ? Math.min(460, Math.max(240, savedSidebar)) : 300);
+            const sidebarOpen = ref(false);
+            const isNarrow = ref(false);
+            const isResizing = ref(false);
+
+            const editDraft = ref(null);
+            const editBaseline = ref('');
+
+            const toast = ref({ show: false, message: '', kind: 'ok' });
+            const confirmState = ref({ open: false, title: '', message: '', confirmLabel: 'Conferma', danger: false, onConfirm: null });
+
+            const palette = ref({ open: false, query: '', index: 0 });
+
+            const varEditor = ref({ open: false, name: null, top: 0, left: 0, width: 260, hasPresets: false });
+
+            const searchEl = ref(null);
+            const paletteInput = ref(null);
+            const fileInput = ref(null);
+
+            const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
+            const modKey = ref(isMac ? '⌘' : 'Ctrl');
+
+            watch(isDark, (val) => {
+                document.documentElement.classList.toggle('dark', val);
+                localStorage.setItem('prompt_studio_theme', val ? 'dark' : 'light');
+            }, { immediate: true });
+
+            let toastTimer = null;
+            const showToast = (message, kind = 'ok') => {
+                toast.value = { show: true, message, kind };
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => { toast.value.show = false; }, 2600);
+            };
+
+            const openConfirm = (opts) => {
+                confirmState.value = {
+                    open: true,
+                    title: opts.title,
+                    message: opts.message,
+                    confirmLabel: opts.confirmLabel || 'Conferma',
+                    danger: !!opts.danger,
+                    onConfirm: opts.onConfirm,
+                };
+            };
+            const closeConfirm = () => { confirmState.value.open = false; };
+            const runConfirm = () => {
+                const fn = confirmState.value.onConfirm;
+                closeConfirm();
+                if (typeof fn === 'function') fn();
+            };
+
+            const activeTemplate = computed(() => templates.value.find(t => t.id === activeTemplateId.value) || null);
+
+            const categories = computed(() => {
+                const set = new Set(templates.value.map(t => t.category || 'Generale'));
+                return ['Tutti', ...Array.from(set)];
+            });
+
+            const filteredTemplates = computed(() => {
+                const q = searchQuery.value.toLowerCase().trim();
+                return templates.value.filter(t => {
+                    const cat = t.category || 'Generale';
+                    const matchesCat = selectedCategory.value === 'Tutti' || cat === selectedCategory.value;
+                    const matchesQ = !q || t.title.toLowerCase().includes(q) || (t.content || '').toLowerCase().includes(q);
+                    return matchesCat && matchesQ;
+                });
+            });
+
+            const VAR_REGEX = /\{([a-zA-Z0-9_]+)(?::([^}]*))?\}/g;
+
+            const parseVariables = (text) => {
+                const vars = [];
+                const presets = {};
+                if (!text) return { vars, presets };
+                const regex = new RegExp(VAR_REGEX.source, 'g');
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    const name = match[1];
+                    const options = (match[2] || '').split(',').map(s => s.trim()).filter(Boolean);
+                    if (!vars.includes(name)) vars.push(name);
+                    if (options.length) presets[name] = options;
+                }
+                return { vars, presets };
+            };
+
+            const getVariables = (text) => parseVariables(text).vars;
+
+            const activeTemplateVariables = computed(() => activeTemplate.value ? getVariables(activeTemplate.value.content) : []);
+            const editVariables = computed(() => editDraft.value ? getVariables(editDraft.value.content) : []);
+            const activeTemplatePresets = computed(() => activeTemplate.value ? parseVariables(activeTemplate.value.content).presets : {});
+            const editPresets = computed(() => editDraft.value ? parseVariables(editDraft.value.content).presets : {});
+
+            const compiledSegments = computed(() => {
+                const tpl = activeTemplate.value;
+                if (!tpl) return [];
+                const text = tpl.content || '';
+                const regex = /\{([a-zA-Z0-9_]+)(?::([^}]*))?\}/g;
+                const segs = [];
+                let last = 0;
+                let m;
+                while ((m = regex.exec(text)) !== null) {
+                    if (m.index > last) segs.push({ t: 'text', v: text.slice(last, m.index) });
+                    const name = m[1];
+                    const val = variableValues.value[name];
+                    const filled = val !== undefined && val !== null && val !== '';
+                    segs.push({ t: 'var', name, filled, v: filled ? val : '{' + name + '}' });
+                    last = m.index + m[0].length;
+                }
+                if (last < text.length) segs.push({ t: 'text', v: text.slice(last) });
+                return segs;
+            });
+
+            const compiledPrompt = computed(() => compiledSegments.value.map(s => s.v).join(''));
+            const charCount = computed(() => compiledPrompt.value.length);
+            const tokenCount = computed(() => Math.ceil(charCount.value / 4));
+            const filledCount = computed(() => activeTemplateVariables.value.filter(v => {
+                const val = variableValues.value[v];
+                return val !== undefined && val !== null && val !== '';
+            }).length);
+
+            const editDirty = computed(() => !!editDraft.value && JSON.stringify(editDraft.value) !== editBaseline.value);
+
+            // Presets for the fill view (inline options take precedence, legacy fallback)
+            const tplPresets = (name) => {
+                const inline = activeTemplatePresets.value[name];
+                if (inline && inline.length) return inline;
+                const t = activeTemplate.value;
+                if (!t || !t.variablePresets) return [];
+                return t.variablePresets[name] || [];
+            };
+            const tplHasPresets = (name) => tplPresets(name).length > 0;
+
+            // Inline variable editor (popover anchored to the token)
+            const setVarValue = (name, val) => {
+                variableValues.value = { ...variableValues.value, [name]: val };
+            };
+            const clearVar = (name) => {
+                const next = { ...variableValues.value };
+                delete next[name];
+                variableValues.value = next;
+            };
+            const closeVarEditor = () => { varEditor.value.open = false; };
+            const openVarEditor = (name, ev) => {
+                const rect = ev.currentTarget.getBoundingClientRect();
+                const width = Math.min(320, Math.max(240, rect.width + 140));
+                let left = Math.min(rect.left, window.innerWidth - width - 12);
+                left = Math.max(12, left);
+                const hasPresets = tplHasPresets(name);
+                const estHeight = hasPresets ? Math.min(280, tplPresets(name).length * 33 + 46) : 190;
+                let top = rect.bottom + 6;
+                if (top + estHeight > window.innerHeight - 12) top = Math.max(12, rect.top - estHeight - 6);
+                varEditor.value = { open: true, name, top, left, width, hasPresets };
+                if (!hasPresets) {
+                    nextTick(() => {
+                        const el = document.getElementById('varpop-input');
+                        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+                    });
+                }
+            };
+            const onViewportChange = (e) => {
+                if (!varEditor.value.open) return;
+                if (e && e.target && e.target.closest && e.target.closest('.vpop')) return;
+                closeVarEditor();
+            };
+
+            const startEdit = () => {
+                if (!activeTemplate.value) return;
+                editDraft.value = JSON.parse(JSON.stringify(activeTemplate.value));
+                editBaseline.value = JSON.stringify(editDraft.value);
+                activeTab.value = 'edit';
+            };
+
+            const saveEdit = () => {
+                if (!editDraft.value) return;
+                const idx = templates.value.findIndex(t => t.id === editDraft.value.id);
+                if (idx > -1) templates.value[idx] = JSON.parse(JSON.stringify(editDraft.value));
+                editBaseline.value = JSON.stringify(editDraft.value);
+                activeTab.value = 'fill';
+                showToast('Modifiche salvate');
+            };
+
+            const requestTab = (tab) => {
+                if (tab === activeTab.value) return;
+                if (tab === 'edit') { startEdit(); return; }
+                if (editDirty.value) {
+                    openConfirm({
+                        title: 'Scartare le modifiche?',
+                        message: 'Le modifiche non salvate andranno perse.',
+                        confirmLabel: 'Scarta modifiche',
+                        danger: true,
+                        onConfirm: () => { editDraft.value = null; activeTab.value = 'fill'; },
+                    });
+                    return;
+                }
+                editDraft.value = null;
+                activeTab.value = 'fill';
+            };
+
+            const applySelect = (tpl) => {
+                activeTemplateId.value = tpl.id;
+                activeTab.value = 'fill';
+                editDraft.value = null;
+                sidebarOpen.value = false;
+            };
+
+            const selectTemplate = (tpl) => {
+                if (!tpl || tpl.id === activeTemplateId.value) { sidebarOpen.value = false; return; }
+                if (editDirty.value && activeTab.value === 'edit') {
+                    openConfirm({
+                        title: 'Scartare le modifiche?',
+                        message: 'Aprire un altro prompt annullerà le modifiche non salvate.',
+                        confirmLabel: 'Scarta e apri',
+                        danger: true,
+                        onConfirm: () => applySelect(tpl),
+                    });
+                    return;
+                }
+                applySelect(tpl);
+            };
+
+            watch(activeTemplateId, () => { variableValues.value = {}; closeVarEditor(); });
+
+            const createNewTemplate = () => {
+                const id = Date.now().toString();
+                templates.value.unshift({
+                    id,
+                    title: 'Nuovo prompt',
+                    category: 'Generale',
+                    description: '',
+                    content: 'Agisci come {ruolo} e analizza {argomento}.',
+                    variablePresets: {},
+                });
+                activeTemplateId.value = id;
+                startEdit();
+                sidebarOpen.value = false;
+                showToast('Nuovo prompt creato');
+            };
+
+            const confirmDelete = (tpl) => {
+                if (!tpl) return;
+                openConfirm({
+                    title: 'Eliminare il prompt?',
+                    message: `“${tpl.title}” verrà rimosso dalla libreria. L'azione non si può annullare.`,
+                    confirmLabel: 'Elimina prompt',
+                    danger: true,
+                    onConfirm: () => executeDelete(tpl),
+                });
+            };
+
+            const executeDelete = (tpl) => {
+                templates.value = templates.value.filter(t => t.id !== tpl.id);
+                if (activeTemplateId.value === tpl.id) {
+                    activeTemplateId.value = templates.value.length > 0 ? templates.value[0].id : null;
+                    activeTab.value = 'fill';
+                    editDraft.value = null;
+                }
+                showToast('Prompt eliminato');
+            };
+
+            const copyPrompt = async () => {
+                const text = compiledPrompt.value;
+                if (!text) { showToast('Non c\'è ancora nulla da copiare', 'error'); return; }
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        ta.remove();
+                    }
+                    showToast('Prompt copiato');
+                } catch (err) {
+                    showToast('Copia non riuscita', 'error');
+                }
+            };
+
+            const exportTemplates = () => {
+                const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(templates.value, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute('href', dataStr);
+                a.setAttribute('download', `prompt_backup_${new Date().toISOString().slice(0, 10)}.json`);
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                showToast('Libreria esportata');
+            };
+
+            const importClick = () => { if (fileInput.value) fileInput.value.click(); };
+
+            const importTemplates = (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (!Array.isArray(imported)) throw new Error('Formato non valido');
+                        templates.value = imported;
+                        activeTemplateId.value = imported.length > 0 ? imported[0].id : null;
+                        activeTab.value = 'fill';
+                        editDraft.value = null;
+                        showToast('Libreria importata');
+                    } catch (err) {
+                        showToast('File JSON non valido', 'error');
+                    }
+                    event.target.value = '';
+                };
+                reader.readAsText(file);
+            };
+
+            const toggleTheme = () => { isDark.value = !isDark.value; };
+
+            // ---- Command palette ----
+            const paletteResults = computed(() => {
+                const list = [];
+
+                list.push({ id: 'cmd:new', group: 'Azioni', label: 'Nuovo prompt', icon: 'plus', hint: 'n', run: createNewTemplate });
+
+                if (activeTemplate.value) {
+                    list.push({ id: 'cmd:fill', group: 'Azioni', label: 'Compila il prompt corrente', icon: 'sliders', run: () => requestTab('fill') });
+                    list.push({ id: 'cmd:edit', group: 'Azioni', label: 'Modifica il prompt corrente', icon: 'pen', hint: 'e', run: () => requestTab('edit') });
+                    list.push({ id: 'cmd:copy', group: 'Azioni', label: 'Copia il prompt compilato', icon: 'copy', hint: modKey.value + '↵', run: copyPrompt });
+                    list.push({ id: 'cmd:del', group: 'Azioni', label: 'Elimina il prompt corrente', icon: 'trash', run: () => confirmDelete(activeTemplate.value) });
+                }
+
+                templates.value.forEach(t => list.push({
+                    id: 'tpl:' + t.id,
+                    group: 'Prompt',
+                    label: t.title,
+                    icon: 'file',
+                    hint: t.category || 'Generale',
+                    run: () => selectTemplate(t),
+                }));
+
+                list.push({ id: 'cmd:theme', group: 'Interfaccia', label: isDark.value ? 'Passa al tema chiaro' : 'Passa al tema scuro', icon: isDark.value ? 'sun' : 'moon', run: toggleTheme });
+                list.push({ id: 'cmd:export', group: 'Interfaccia', label: 'Esporta libreria come JSON', icon: 'download', run: exportTemplates });
+                list.push({ id: 'cmd:import', group: 'Interfaccia', label: 'Importa libreria da JSON', icon: 'upload', run: importClick });
+
+                const q = palette.value.query.toLowerCase().trim();
+                return q ? list.filter(c => c.label.toLowerCase().includes(q)) : list;
+            });
+
+            const openPalette = () => {
+                palette.value.open = true;
+                palette.value.query = '';
+                palette.value.index = 0;
+                nextTick(() => { if (paletteInput.value) paletteInput.value.focus(); });
+            };
+            const closePalette = () => { palette.value.open = false; };
+            const togglePalette = () => { palette.value.open ? closePalette() : openPalette(); };
+            const movePalette = (delta) => {
+                const n = paletteResults.value.length;
+                if (n === 0) return;
+                palette.value.index = (palette.value.index + delta + n) % n;
+            };
+            const runPalette = (i) => {
+                const item = paletteResults.value[typeof i === 'number' ? i : palette.value.index];
+                if (!item) return;
+                closePalette();
+                nextTick(() => item.run());
+            };
+
+            watch(() => palette.value.query, () => { palette.value.index = 0; });
+
+            // ---- Sidebar resize ----
+            const startResize = (e) => {
+                if (isNarrow.value) return;
+                isResizing.value = true;
+                const startX = e.clientX;
+                const startW = sidebarWidth.value;
+                const move = (ev) => {
+                    sidebarWidth.value = Math.min(460, Math.max(240, startW + ev.clientX - startX));
+                };
+                const up = () => {
+                    isResizing.value = false;
+                    localStorage.setItem('prompt_studio_sidebar', String(sidebarWidth.value));
+                    window.removeEventListener('pointermove', move);
+                    window.removeEventListener('pointerup', up);
+                };
+                window.addEventListener('pointermove', move);
+                window.addEventListener('pointerup', up);
+            };
+
+            // ---- Keyboard ----
+            const isTyping = (e) => {
+                const t = e.target;
+                return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+            };
+
+            const onGlobalKey = (e) => {
+                const mod = e.metaKey || e.ctrlKey;
+
+                if (mod && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); togglePalette(); return; }
+
+                if (e.key === 'Escape') {
+                    if (varEditor.value.open) { closeVarEditor(); return; }
+                    if (palette.value.open) { closePalette(); return; }
+                    if (confirmState.value.open) { closeConfirm(); return; }
+                    if (isNarrow.value && sidebarOpen.value) { sidebarOpen.value = false; return; }
+                }
+
+                if (varEditor.value.open) return;
+
+                if (palette.value.open) return;
+
+                if (mod && e.key === 'Enter') {
+                    if (activeTab.value === 'fill' && activeTemplate.value) { e.preventDefault(); copyPrompt(); }
+                    return;
+                }
+
+                if (isTyping(e)) return;
+
+                if (e.key === '/') { e.preventDefault(); if (searchEl.value) searchEl.value.focus(); }
+                else if (e.key === 'n') { e.preventDefault(); createNewTemplate(); }
+                else if (e.key === 'e') { e.preventDefault(); requestTab('edit'); }
+            };
+
+            // ---- Lifecycle ----
+            let mq = null;
+            const onMq = (ev) => {
+                isNarrow.value = ev.matches;
+                if (!ev.matches) sidebarOpen.value = false;
+            };
+
+            onMounted(() => {
+                const saved = localStorage.getItem('prompt_studio_templates');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        templates.value = Array.isArray(parsed) ? parsed : DEFAULT_TEMPLATES;
+                    } catch (err) {
+                        templates.value = DEFAULT_TEMPLATES;
+                    }
+                } else {
+                    templates.value = DEFAULT_TEMPLATES;
+                }
+                if (templates.value.length > 0) activeTemplateId.value = templates.value[0].id;
+
+                mq = window.matchMedia('(max-width: 767px)');
+                isNarrow.value = mq.matches;
+                mq.addEventListener('change', onMq);
+                window.addEventListener('keydown', onGlobalKey);
+                window.addEventListener('scroll', onViewportChange, true);
+                window.addEventListener('resize', onViewportChange);
+            });
+
+            onUnmounted(() => {
+                if (mq) mq.removeEventListener('change', onMq);
+                window.removeEventListener('keydown', onGlobalKey);
+                window.removeEventListener('scroll', onViewportChange, true);
+                window.removeEventListener('resize', onViewportChange);
+                clearTimeout(toastTimer);
+            });
+
+            watch(templates, () => {
+                localStorage.setItem('prompt_studio_templates', JSON.stringify(templates.value));
+            }, { deep: true });
+
+            return {
+                templates,
+                activeTemplateId,
+                activeTemplate,
+                activeTab,
+                searchQuery,
+                selectedCategory,
+                categories,
+                filteredTemplates,
+                variableValues,
+                activeTemplateVariables,
+                editVariables,
+                editPresets,
+                compiledSegments,
+                compiledPrompt,
+                charCount,
+                tokenCount,
+                filledCount,
+                editDraft,
+                editDirty,
+                isDark,
+                toggleTheme,
+                sidebarWidth,
+                sidebarOpen,
+                isNarrow,
+                isResizing,
+                toast,
+                confirmState,
+                palette,
+                paletteResults,
+                varEditor,
+                searchEl,
+                paletteInput,
+                fileInput,
+                modKey,
+                getVariables,
+                createNewTemplate,
+                selectTemplate,
+                startEdit,
+                saveEdit,
+                requestTab,
+                confirmDelete,
+                copyPrompt,
+                exportTemplates,
+                importClick,
+                importTemplates,
+                tplPresets,
+                tplHasPresets,
+                openVarEditor,
+                closeVarEditor,
+                setVarValue,
+                clearVar,
+                openPalette,
+                closePalette,
+                togglePalette,
+                movePalette,
+                runPalette,
+                startResize,
+                closeConfirm,
+                runConfirm,
+            };
+        },
+    }).mount('#app');
+</script>
+</body>
+</html>
