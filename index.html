@@ -569,6 +569,7 @@
                                                 <button class="vopt" role="menuitem" @click="copyPrompt">
                                                     <svg class="icon text-[15px]"><use href="#i-copy"/></svg>
                                                     <span class="flex-1 truncate text-left">Copia prompt</span>
+                                                    <span class="kbd ml-1 flex-none">{{ modKey }}⇧C</span>
                                                 </button>
                                             </div>
                                         </transition>
@@ -668,6 +669,7 @@
             <span class="hidden md:flex items-center gap-1.5"><span class="kbd">{{ modKey }}↵</span> invia a {{ selectedProvider.label }}</span>
             <span class="hidden lg:flex items-center gap-1.5"><span class="kbd">/</span> cerca</span>
             <span class="hidden xl:flex items-center gap-1.5"><span class="kbd">{{ modKey }}⇧↵</span> cambia LLM</span>
+            <span class="hidden xl:flex items-center gap-1.5"><span class="kbd">{{ modKey }}⇧C</span> copia</span>
         </footer>
 
         <!-- COMMAND PALETTE -->
@@ -1308,6 +1310,11 @@
 
                 if (mod && e.key === 'Enter') {
                     if (activeTab.value === 'fill' && activeTemplate.value) { e.preventDefault(); sendToProvider(); }
+                    return;
+                }
+
+                if (mod && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+                    if (activeTab.value === 'fill' && activeTemplate.value) { e.preventDefault(); copyPrompt(); }
                     return;
                 }
 
